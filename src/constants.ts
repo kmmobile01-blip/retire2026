@@ -41,6 +41,9 @@ const generateOldSystemTable = (type: 1 | 2 | 3): TableRowT1[] => {
     // 待機期間（0点の期間）: ①0年, ②1年, ③2年
     // 規程の「満1年以上」「満2年以上」を反映
     const waitingYears = type === 1 ? 0 : type === 2 ? 1 : 2;
+    
+    // 規程の「満35年まで」「満36年まで」「満37年まで」の記述に合わせ、上限をスライド
+    const maxYearForRank2 = type === 1 ? 35 : type === 2 ? 36 : 37;
 
     for (let y = 1; y <= 47; y++) {
         let losUnit = 0;
@@ -58,7 +61,7 @@ const generateOldSystemTable = (type: 1 | 2 | 3): TableRowT1[] => {
             else if (effectivePointYear <= 20) losUnit = 45;
             else if (effectivePointYear <= 25) losUnit = 50; 
             else if (effectivePointYear <= 30) losUnit = 40; 
-            else if (effectivePointYear <= 35) losUnit = 35; 
+            else if (effectivePointYear <= maxYearForRank2) losUnit = 35; 
             else losUnit = 0;
 
             // 職能ポイント (Rank 1等級)
@@ -68,7 +71,7 @@ const generateOldSystemTable = (type: 1 | 2 | 3): TableRowT1[] => {
             else if (effectivePointYear <= 20) r1Unit = 4;
             else if (effectivePointYear <= 25) r1Unit = 5;
             else if (effectivePointYear <= 30) r1Unit = 6;
-            else if (effectivePointYear <= 35) r1Unit = 7;
+            else if (effectivePointYear <= maxYearForRank2) r1Unit = 7;
             else r1Unit = 0;
         }
 
@@ -76,8 +79,6 @@ const generateOldSystemTable = (type: 1 | 2 | 3): TableRowT1[] => {
         accR1 += r1Unit;
 
         // Rank 2等級以上 (在級年数)
-        // 規程の「満35年まで」「満36年まで」の記述に合わせ、上限をスライド
-        const maxYearForRank2 = type === 1 ? 35 : type === 2 ? 36 : 37;
         const effectiveYForRank2 = Math.min(y, maxYearForRank2);
 
         rows.push({ 

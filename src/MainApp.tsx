@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { 
     EmployeeInputRow, TableRowT1, TableRowT2, CoefSettings, 
-    CalculationResult, SimulationConfig, FractionConfig, AggregatedYearlyData
+    CalculationResult, SimulationConfig, FractionConfig, AggregatedYearlyData, YearlyDetail, CoefRow
 } from './types';
 import { 
     SAMPLE_EMPLOYEE_DATA, DEFAULT_TABLE_1_1, DEFAULT_TABLE_1_2, DEFAULT_TABLE_1_3, DEFAULT_TABLE_2, 
@@ -39,11 +39,11 @@ const DEFAULT_CONFIG: Omit<SimulationConfig, 'label'> = {
     // 現行
     defaultYearlyEval: 0,
     retirementAges: { type1: 60, type2: 60, type3: 60, type4: 60 },
-    cutoffYears: { type1: 35, type2: 36, type3: 36 },
+    cutoffYears: { type1: 35, type2: 36, type3: 37 },
     // 将来
     defaultYearlyEvalFuture: 0,
     retirementAgesFuture: { type1: 60, type2: 60, type3: 60, type4: 60 },
-    cutoffYearsFuture: { type1: 35, type2: 36, type3: 36 },
+    cutoffYearsFuture: { type1: 35, type2: 36, type3: 37 },
 
     transitionConfig: { enabled: false, date: new Date(2027, 2, 31) }, // 2027/03/31
     adjustmentConfig: { 
@@ -156,7 +156,7 @@ export default function MainApp() {
             return; 
         }
 
-        const found = data.find(row => {
+        const found = data.find((row: EmployeeInputRow) => {
             const idVal = COL_ALIASES.id.reduce((found: string | number | undefined, alias) => found || row[alias], undefined);
             if (String(idVal) === term) return true;
             const nameVal = COL_ALIASES.name.reduce((found: string | number | undefined, alias) => found || row[alias], undefined);
@@ -177,7 +177,7 @@ export default function MainApp() {
     const searchResult = useMemo(() => {
         if (!selectedEmployeeId || data.length === 0) return null;
         
-        const found = data.find(row => {
+        const found = data.find((row: EmployeeInputRow) => {
             const idVal = COL_ALIASES.id.reduce((f: string | number | undefined, a) => f || row[a], undefined);
             return String(idVal) === selectedEmployeeId;
         });
@@ -242,7 +242,7 @@ export default function MainApp() {
             const d2000 = new Date(2000, 2, 31);
             const d2011 = new Date(2011, 8, 30);
 
-            data.forEach(row => {
+            data.forEach((row: EmployeeInputRow) => {
                 // Must calculate B first to handle Adjustment Mode in A
                 const resB = runCalculation(row, configB);
                 const targetAmount = (configA.adjustmentConfig?.enabled || configA.unifyNewSystemConfig?.enabled) && resB ? resB.retirementAllowance : undefined;
@@ -268,8 +268,8 @@ export default function MainApp() {
                     }
 
                     // For costs
-                    resA.yearlyDetails.forEach(d => { if (costsMap.has(d.year)) costsMap.get(d.year)!.A[typeKey] += d.amountInc; });
-                    resB.yearlyDetails.forEach(d => { if (costsMap.has(d.year)) costsMap.get(d.year)!.B[typeKey] += d.amountInc; });
+                    resA.yearlyDetails.forEach((d: YearlyDetail) => { if (costsMap.has(d.year)) costsMap.get(d.year)!.A[typeKey] += d.amountInc; });
+                    resB.yearlyDetails.forEach((d: YearlyDetail) => { if (costsMap.has(d.year)) costsMap.get(d.year)!.B[typeKey] += d.amountInc; });
                 }
             });
 
@@ -294,7 +294,7 @@ export default function MainApp() {
     }, [data, calcTrigger, configA, configB, runCalculation]); // Re-run when data or configs change
 
     const handleRunSimulation = () => {
-        setCalcTrigger(prev => prev + 1);
+        setCalcTrigger((prev: number) => prev + 1);
         setStatus('再計算完了');
         setTimeout(() => setStatus('待機中'), 2000);
     };
@@ -327,7 +327,7 @@ export default function MainApp() {
             type4: [] as any[]
         };
 
-        data.forEach(row => {
+        data.forEach((row: EmployeeInputRow) => {
             const jd = parseDate(row['入社日'] || row['joinDate']);
             if (!jd) return;
             const bd = parseDate(row['生年月日'] || row['birthDate']);
@@ -348,7 +348,7 @@ export default function MainApp() {
             
             if (!table || table.length === 0) return 1.0;
             const y = Math.max(1, Math.floor(years));
-            const r = table.find(x => x.years === y) || table[table.length - 1];
+            const r = table.find((x: CoefRow) => x.years === y) || table[table.length - 1];
             return r ? r.coef : 1.0;
         };
 
@@ -415,7 +415,7 @@ export default function MainApp() {
                 setData(json);
                 setSelectedEmployeeId(null);
                 alert(`社員データ ${json.length}件を読み込みました`);
-                setCalcTrigger(prev => prev + 1); // Trigger calc on load
+                setCalcTrigger((prev: number) => prev + 1); // Trigger calc on load
             } catch (err: any) { alert('データ読込エラー: ' + err.message); }
         };
         reader.readAsArrayBuffer(file);
@@ -591,11 +591,11 @@ export default function MainApp() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">ポイント単価 (円)</label>
-                    <input type="number" value={config.unitPrice} onChange={e => setConfig({...config, unitPrice: Number(e.target.value)})} className="w-full p-2.5 border-slate-300 rounded text-base text-right" />
+                    <input type="number" value={config.unitPrice} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({...config, unitPrice: Number(e.target.value)})} className="w-full p-2.5 border-slate-300 rounded text-base text-right" />
                 </div>
                 <div>
                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">標準考課Pt (年)</label>
-                    <input type="number" value={config.defaultYearlyEval} onChange={e => setConfig({...config, defaultYearlyEval: Number(e.target.value)})} className="w-full p-2.5 border-slate-300 rounded text-base text-right" />
+                    <input type="number" value={config.defaultYearlyEval} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({...config, defaultYearlyEval: Number(e.target.value)})} className="w-full p-2.5 border-slate-300 rounded text-base text-right" />
                 </div>
             </div>
 
@@ -606,7 +606,7 @@ export default function MainApp() {
                         type="checkbox" 
                         id={`trans-${pattern}`}
                         checked={config.transitionConfig.enabled}
-                        onChange={(e) => setConfig({ ...config, transitionConfig: { ...config.transitionConfig, enabled: e.target.checked } })}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, transitionConfig: { ...config.transitionConfig, enabled: e.target.checked } })}
                         className="w-6 h-6 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                     />
                     <label htmlFor={`trans-${pattern}`} className={`text-lg font-bold flex items-center gap-2 cursor-pointer select-none ${config.transitionConfig.enabled ? 'text-indigo-700' : 'text-slate-600'}`}>
@@ -624,7 +624,7 @@ export default function MainApp() {
                                 <input 
                                     type="date" 
                                     value={config.transitionConfig.date instanceof Date ? config.transitionConfig.date.toISOString().split('T')[0] : ''}
-                                    onChange={(e) => setConfig({ ...config, transitionConfig: { ...config.transitionConfig, date: new Date(e.target.value) } })}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, transitionConfig: { ...config.transitionConfig, date: new Date(e.target.value) } })}
                                     className="w-full pl-10 p-2.5 text-base border-slate-300 rounded shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                                 />
                             </div>
@@ -643,7 +643,7 @@ export default function MainApp() {
                                 type="checkbox" 
                                 id="adj-a"
                                 checked={config.adjustmentConfig?.enabled || false}
-                                onChange={(e) => setConfig({ 
+                                onChange={(e: any) => setConfig({ 
                                     ...config, 
                                     adjustmentConfig: { 
                                         enabled: e.target.checked,
@@ -671,7 +671,7 @@ export default function MainApp() {
                                                 <span className="text-[10px] text-amber-600 font-bold text-center mb-1">{['旧①','旧②','旧③','新'][i]}</span>
                                                 <select 
                                                     value={(config.adjustmentConfig?.retirementAges as any)?.[t] || 65}
-                                                    onChange={(e) => {
+                                                    onChange={(e: any) => {
                                                         const val = Number(e.target.value);
                                                         setConfig({
                                                             ...config,
@@ -704,7 +704,7 @@ export default function MainApp() {
                                 type="checkbox" 
                                 id="unify-a"
                                 checked={config.unifyNewSystemConfig?.enabled || false}
-                                onChange={(e) => setConfig({ 
+                                onChange={(e: any) => setConfig({ 
                                     ...config, 
                                     unifyNewSystemConfig: { 
                                         enabled: e.target.checked,
@@ -736,7 +736,7 @@ export default function MainApp() {
                                                     <input 
                                                         type="checkbox"
                                                         checked={isChecked}
-                                                        onChange={(e) => setConfig({
+                                                        onChange={(e: any) => setConfig({
                                                             ...config,
                                                             unifyNewSystemConfig: {
                                                                 ...config.unifyNewSystemConfig!,
@@ -753,7 +753,7 @@ export default function MainApp() {
                                                 <select 
                                                     value={(config.unifyNewSystemConfig?.retirementAges as any)?.[t] || 65}
                                                     disabled={!isChecked}
-                                                    onChange={(e) => {
+                                                    onChange={(e: any) => {
                                                         const val = Number(e.target.value);
                                                         setConfig({
                                                             ...config,
@@ -793,7 +793,7 @@ export default function MainApp() {
                                 <input 
                                     type="number" 
                                     value={(config.retirementAges as any)[t]} 
-                                    onChange={e => setConfig({...config, retirementAges: {...config.retirementAges, [t]: Number(e.target.value)}})} 
+                                    onChange={(e: any) => setConfig({...config, retirementAges: {...config.retirementAges, [t]: Number(e.target.value)}})} 
                                     disabled={config.adjustmentConfig?.enabled || config.unifyNewSystemConfig?.enabled}
                                     className={`w-full p-1.5 sm:p-2 border-slate-300 rounded text-sm sm:text-base text-center ${config.adjustmentConfig?.enabled || config.unifyNewSystemConfig?.enabled ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : ''}`}
                                 />
@@ -811,7 +811,7 @@ export default function MainApp() {
                                 <input 
                                     type="number" min={30} max={47}
                                     value={(config.cutoffYears as any)[t]} 
-                                    onChange={e => setConfig({...config, cutoffYears: {...config.cutoffYears, [t]: Number(e.target.value)}})} 
+                                    onChange={(e: any) => setConfig({...config, cutoffYears: {...config.cutoffYears, [t]: Number(e.target.value)}})} 
                                     className="w-full p-1.5 sm:p-2 border-slate-300 rounded text-sm sm:text-base text-center" 
                                 />
                             </div>
@@ -833,7 +833,7 @@ export default function MainApp() {
                                     <input 
                                         type="number" 
                                         value={(config.retirementAgesFuture as any)[t]} 
-                                        onChange={e => setConfig({...config, retirementAgesFuture: {...config.retirementAgesFuture, [t]: Number(e.target.value)}})} 
+                                        onChange={(e: any) => setConfig({...config, retirementAgesFuture: {...config.retirementAgesFuture, [t]: Number(e.target.value)}})} 
                                         disabled={config.adjustmentConfig?.enabled || config.unifyNewSystemConfig?.enabled}
                                         className={`w-full p-1.5 sm:p-2 border-indigo-200 rounded text-sm sm:text-base text-center ${config.adjustmentConfig?.enabled || config.unifyNewSystemConfig?.enabled ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-indigo-50 focus:ring-indigo-500'}`}
                                     />
@@ -852,7 +852,7 @@ export default function MainApp() {
                                         <input 
                                             type="number" min={30} max={47}
                                             value={(config.cutoffYearsFuture as any)[t]} 
-                                            onChange={e => setConfig({...config, cutoffYearsFuture: {...config.cutoffYearsFuture, [t]: Number(e.target.value)}})} 
+                                            onChange={(e: any) => setConfig({...config, cutoffYearsFuture: {...config.cutoffYearsFuture, [t]: Number(e.target.value)}})} 
                                             className="w-full p-1.5 sm:p-2 border-indigo-200 rounded text-sm sm:text-base text-center bg-indigo-50 focus:ring-indigo-500" 
                                         />
                                     </div>
@@ -864,7 +864,7 @@ export default function MainApp() {
                             <input 
                                 type="number" 
                                 value={config.defaultYearlyEvalFuture} 
-                                onChange={e => setConfig({...config, defaultYearlyEvalFuture: Number(e.target.value)})} 
+                                onChange={(e: any) => setConfig({...config, defaultYearlyEvalFuture: Number(e.target.value)})} 
                                 className="w-full p-2 border-indigo-200 rounded text-base text-right bg-indigo-50 focus:ring-indigo-500 sm:mt-6" 
                             />
                         </div>
@@ -1109,7 +1109,7 @@ export default function MainApp() {
                                 placeholder="社員番号 または 氏名..." 
                                 className="flex-1 border-slate-300 rounded-xl px-5 py-3 text-base focus:ring-2 focus:ring-indigo-500" 
                                 value={searchTerm} 
-                                onChange={(e) => setSearchTerm(e.target.value)} 
+                                onChange={(e: any) => setSearchTerm(e.target.value)} 
                                 onKeyDown={(e) => e.key === 'Enter' && executeSearch()}
                             />
                             <button onClick={executeSearch} className="bg-indigo-600 text-white px-6 py-3 rounded-xl text-base font-bold hover:bg-indigo-700 transition">検索</button>
