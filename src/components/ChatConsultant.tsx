@@ -4,8 +4,14 @@ import { GoogleGenAI } from '@google/genai';
 import Markdown from 'react-markdown';
 import { SimulationConfig, AggregatedYearlyData } from '../types';
 
-// Initialize Gemini API
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+declare global {
+  interface Window {
+    aistudio?: {
+      hasSelectedApiKey: () => Promise<boolean>;
+      openSelectKey: () => Promise<void>;
+    };
+  }
+}
 
 interface ChatMessage {
   role: 'user' | 'model';
@@ -20,6 +26,7 @@ interface ChatConsultantProps {
 export const ChatConsultant: React.FC<ChatConsultantProps> = ({ config, aggregatedData }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [isKeySelected, setIsKeySelected] = useState(true);
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: 'model', text: 'こんにちは。人事労務コンサルタントのAIアシスタントです。\n\n退職金制度の一般論、現行制度の課題、シミュレーション結果の分析、改定案の提案などについて、何でもご相談ください。' }
   ]);
@@ -36,6 +43,16 @@ export const ChatConsultant: React.FC<ChatConsultantProps> = ({ config, aggregat
       scrollToBottom();
     }
   }, [messages, isOpen, isMinimized]);
+
+  useEffect(() => {
+    const checkApiKey = async () => {
+      if (isOpen && window.aistudio) {
+        const hasKey = await window.aistudio.hasSelectedApiKey();
+        setIsKeySelected(hasKey);
+      }
+    };
+    checkApiKey();
+  }, [isOpen]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -79,6 +96,9 @@ ${contextSummary}
       }));
       contents.push({ role: 'user', parts: [{ text: userText }] });
 
+      const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
+      const ai = new GoogleGenAI({ apiKey: apiKey });
+
       const responseStream = await ai.models.generateContentStream({
         model: 'gemini-3.1-pro-preview',
         contents: contents,
@@ -99,9 +119,18 @@ ${contextSummary}
           return newMessages;
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Chat error:", error);
-      setMessages(prev => [...prev, { role: 'model', text: '申し訳ありません。エラーが発生しました。もう一度お試しください。' }]);
+      if (error.message?.includes("Requested entity was not found")) {
+        setIsKeySelected(false);
+        setMessages(prev => {
+          const newMessages = [...prev];
+          newMessages.pop(); // Remove the user message that failed
+          return newMessages;
+        });
+      } else {
+        setMessages(prev => [...prev, { role: 'model', text: '申し訳ありません。エラーが発生しました。もう一度お試しください。' }]);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -153,8 +182,31 @@ ${contextSummary}
       {/* Chat Area */}
       {!isMinimized && (
         <>
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-            {messages.map((msg, idx) => (
+          {!isKeySelected ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-4 bg-gray-50 rounded-b-xl">
+              <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-2">
+                <Bot size={24} />
+              </div>
+              <h4 className="font-bold text-gray-800">APIキーの設定が必要です</h4>
+              <p className="text-sm text-gray-600">
+                AIコンサルタントを利用するには、ご自身のGemini APIキーを選択してください。
+              </p>
+              <button
+                onClick={async () => {
+                  if (window.aistudio) {
+                    await window.aistudio.openSelectKey();
+                    setIsKeySelected(true);
+                  }
+                }}
+                className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm"
+              >
+                APIキーを選択する
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+                {messages.map((msg, idx) => (
               <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`flex max-w-[85%] gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'user' ? 'bg-blue-100 text-blue-600' : 'bg-gray-200 text-gray-600'}`}>
@@ -212,6 +264,8 @@ ${contextSummary}
               <span className="text-[10px] text-gray-400">AIは不正確な情報を提供することがあります。</span>
             </div>
           </div>
+            </>
+          )}
         </>
       )}
     </div>
