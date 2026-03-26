@@ -18,6 +18,7 @@ import {
     COEF_CSV_HEADERS, COL_ALIASES, EMPLOYEE_CSV_HEADERS
 } from './constants';
 import { processRow, roundTo2, formatDateWithWareki, parseDate, calculatePeriodYears, deepClone } from './utils';
+import { ChatConsultant } from './components/ChatConsultant';
 
 // 旧制度マスタ(T1形式)を新制度マスタ(T2形式)の構造に変換するヘルパー
 const convertT1toT2 = (t1: TableRowT1[]): TableRowT2[] => {
@@ -1161,6 +1162,7 @@ export default function MainApp() {
                         </div>
                     </div>
                 )}
+                <ChatConsultant config={configA} aggregatedData={aggregatedData} />
             </div>
         </div>
     );
