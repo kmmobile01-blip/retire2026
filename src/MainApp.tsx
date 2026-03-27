@@ -19,6 +19,10 @@ import {
 } from './constants';
 import { processRow, roundTo2, formatDateWithWareki, parseDate, calculatePeriodYears, deepClone } from './utils';
 import { ChatConsultant } from './components/ChatConsultant';
+import { ResultCard } from './components/ResultCard';
+import { AIAnalysisReport } from './components/AIAnalysisReport';
+import { MasterEditorModal } from './components/MasterEditorModal';
+import { HelpModal } from './components/HelpModal';
 
 // 旧制度マスタ(T1形式)を新制度マスタ(T2形式)の構造に変換するヘルパー
 const convertT1toT2 = (t1: TableRowT1[]): TableRowT2[] => {
@@ -1119,15 +1123,13 @@ export default function MainApp() {
                         {searchError && <div className="text-red-500 text-base bg-red-50 p-4 rounded border border-red-100"><AlertCircle className="w-5 h-5 inline mr-2"/>{searchError}</div>}
                         
                         {searchResult && (
-                            <div className="p-4 bg-yellow-50 text-yellow-800 rounded-xl border border-yellow-200">
-                                ResultCard component was removed.
-                            </div>
+                            <ResultCard resA={searchResult.resA} resB={searchResult.resB} />
                         )}
                     </div>
                     
-                    {/* Section 5: AI Analysis Report (Removed) */}
+                    {/* Section 5: AI Analysis Report */}
                     <div className="report-section">
-                        {/* AIAnalysisReport component was removed */}
+                        <AIAnalysisReport data={aggregatedData} />
                     </div>
 
                     {/* Footer / Info */}
@@ -1145,22 +1147,17 @@ export default function MainApp() {
                     )}
                 </div>
 
-                {/* Modals (Removed) */}
+                {/* Modals */}
                 {editingPattern && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                        <div className="bg-white p-6 rounded-xl shadow-xl max-w-md w-full">
-                            <h2 className="text-xl font-bold mb-4">MasterEditorModal is removed</h2>
-                            <button onClick={() => setEditingPattern(null)} className="px-4 py-2 bg-slate-200 rounded hover:bg-slate-300">閉じる</button>
-                        </div>
-                    </div>
+                    <MasterEditorModal 
+                        pattern={editingPattern} 
+                        config={editingPattern === 'A' ? configA : configB} 
+                        setConfig={editingPattern === 'A' ? setConfigA : setConfigB} 
+                        onClose={() => setEditingPattern(null)} 
+                    />
                 )}
                 {showHelp && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                        <div className="bg-white p-6 rounded-xl shadow-xl max-w-md w-full">
-                            <h2 className="text-xl font-bold mb-4">HelpModal is removed</h2>
-                            <button onClick={() => setShowHelp(false)} className="px-4 py-2 bg-slate-200 rounded hover:bg-slate-300">閉じる</button>
-                        </div>
-                    </div>
+                    <HelpModal onClose={() => setShowHelp(false)} />
                 )}
                 <ChatConsultant config={configA} aggregatedData={aggregatedData} />
             </div>
